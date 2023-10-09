@@ -11,6 +11,20 @@
 
 const DWORD SHA256_DIGEST_LENGTH = 32;  // Tamaño del hash SHA-256 en bytes
 
+//CREADO POR LUCAS CALZADA (mentira: chat gpt)
+/*
+* INSTRUCCIONES:
+* 1.Crea un fichero que se llame como el bloque que te toque, ejemplo: bloque9.txt
+* 2.Introduce la ruta del archivo en la variable constante de abajo
+* 3.Introduce los demas datos
+* 4.Voala!, solo te toca esperar a que te lo calcule, suerte!!!
+*/
+const std::string NOMBRE_APELLIDOS = "Lucas Calzada del Pozo";
+const std::string HASH_PREVIO = "03b7855790895f440bd6b830b8155a5afe7d4cb6db1c7ba985f827add1923395";
+const std::string EMPIEZA_POR = "03b";
+const std::string RUTA_ARCHIVO = "C:/Users/Lucas/Desktop/bloque9.txt";
+
+
 std::string calculateSHA256(const std::string& filePath) {
     std::ifstream file(filePath, std::ios::binary);
     if (!file) {
@@ -65,10 +79,18 @@ std::string calculateSHA256(const std::string& filePath) {
 }
 
 std::string generateUpdatedFileContent(const std::string& originalContent, int newNonce) {
-    // Utilizamos una expresión regular para buscar y reemplazar el valor del nonce
+    // Utilizamos expresiones regulares para buscar y reemplazar el valor del nonce y los datos personales
     std::regex regexNonce("Nonce: (\\d+)");
-    std::string replacement = "Nonce: " + std::to_string(newNonce);
-    std::string updatedContent = std::regex_replace(originalContent, regexNonce, replacement);
+    std::regex regexNombre("Nombre y Apellidos: (.+)");
+    std::regex regexHashPrevio("Hash \\(previo\\): (.+)");
+
+    std::string replacementNonce = "Nonce: " + std::to_string(newNonce);
+    std::string replacementNombre = "Nombre y Apellidos: " + NOMBRE_APELLIDOS;
+    std::string replacementHashPrevio = "Hash (previo): " + HASH_PREVIO;
+
+    std::string updatedContent = std::regex_replace(originalContent, regexNonce, replacementNonce);
+    updatedContent = std::regex_replace(updatedContent, regexNombre, replacementNombre);
+    updatedContent = std::regex_replace(updatedContent, regexHashPrevio, replacementHashPrevio);
 
     return updatedContent;
 }
@@ -96,16 +118,46 @@ bool updateNonceInFile(const std::string& filename, int newNonce) {
     fileOutput << updatedContent;
     fileOutput.close();
 
-    std::cout << "Nonce actualizado en el archivo." << std::endl;
+    return true;
+}
+bool readWholeFile(const std::string& filename, std::string& fileContent) {
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "No se pudo abrir el archivo." << std::endl;
+        return false;
+    }
 
+    fileContent.assign((std::istreambuf_iterator<char>(file)), (std::istreambuf_iterator<char>()));
+    file.close();
+    return true;
+}
+
+bool writeToFile(const std::string& filename, const std::string& content) {
+    std::ofstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "No se pudo abrir el archivo para escritura." << std::endl;
+        return false;
+    }
+
+    file << content;
+    file.close();
     return true;
 }
 
 
 int main() {
-    std::string filename = "C:/Users/Lucas/Desktop/bloque9.txt";
+    std::string filename = RUTA_ARCHIVO;
     bool loop = true;
     int nonce = 0;
+
+    std::string fileContent;
+    if (readWholeFile(filename, fileContent)) {
+        std::cout << "Archivo leído exitosamente." << std::endl;
+    }
+    else {
+        std::cerr << "Error al leer el archivo." << std::endl;
+        return 1;
+    }
 
     updateNonceInFile(filename, nonce);
 
@@ -114,23 +166,23 @@ int main() {
         // Calcular el hash SHA-256
         std::string hash = calculateSHA256(filename);
 
-
-
         if (!hash.empty()) {
-            if (hash.compare(0, 3, "03b") == 0) {
-                
+            if (hash.compare(0, 3, EMPIEZA_POR) == 0) {
                 loop = false;
                 std::cout << "HASH ENCONTRADO!!: " << hash << std::endl;
                 std::cout << "NONCE ENCONTRADO!!: " << nonce << std::endl;
                 return 0;
-            }         
-            std::cout << hash << std::endl; 
+            }
+            std::cout << hash << std::endl;
             nonce++;
             updateNonceInFile(filename, nonce);
         }
-
-             
     }
-    std::cout << "[-]: NO SE HA ENCONTRADO EL NONCE SALIENDO!!!" << std::endl;
+
+    std::cout << "[-]: NO SE HA ENCONTRADO EL NONCE, SALIENDO..." << std::endl;
     return 0;
 }
+
+
+
+
